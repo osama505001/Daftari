@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>دفتري — إدارة المصروفات اليومية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF7F2;
+    --paper-2:#F2EDE3;
+    --ink:#1F2B27;
+    --ink-soft:#5C6661;
+    --teal:#2F6F5E;
+    --teal-soft:#E4EFEA;
+    --clay:#B5483B;
+    --clay-soft:#F6E7E3;
+    --gold:#C9A24B;
+    --gold-soft:#F6EFDD;
+    --line:#E8E1D6;
+    --shadow: 0 1px 2px rgba(31,43,39,0.04), 0 8px 24px rgba(31,43,39,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Tajawal',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    max-width:560px;
+    margin:0 auto;
+    padding:18px 16px 100px;
+    min-height:100vh;
+    position:relative;
+  }
+  /* ===== Header ===== */
+  .app-header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:18px;
+    padding:0 2px;
+  }
+  .app-title{
+    font-family:'Cairo',sans-serif;
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:-0.3px;
+  }
+  .app-date{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    font-weight:500;
+  }
+  /* ===== Ledger summary — signature element ===== */
+  .ledger{
+    background:var(--ink);
+    border-radius:20px;
+    padding:22px 18px 18px;
+    color:var(--paper);
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .ledger::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle at 85% -10%, rgba(201,162,75,0.18), transparent 55%),
+               radial-gradient(circle at -10% 110%, rgba(47,111,94,0.25), transparent 55%);
+    pointer-events:none;
+  }
+  .ledger-label{
+    font-size:12px;
+    color:#C7CFC9;
+    margin-bottom:2px;
+    position:relative;
+  }
+  .ledger-balance{
+    font-family:'Cairo',sans-serif;
+    font-weight:900;
+    font-size:38px;
+    line-height:1.1;
+    letter-spacing:-0.5px;
+    position:relative;
+    direction:ltr;
+    text-align:right;
+    unicode-bidi:plaintext;
+  }
+  .ledger-balance .cur{font-size:16px; font-weight:600; color:#C7CFC9; margin-right:6px;}
+  .ledger-period{
+    display:flex;
+    gap:6px;
+    margin-top:14px;
+    position:relative;
+  }
+  .period-btn{
+    flex:1;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.12);
+    color:#D8DED9;
+    border-radius:10px;
+    padding:6px 0;
+    font-size:12px;
+    font-family:'Tajawal',sans-serif;
+    font-weight:500;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .period-btn.active{
+    background:var(--paper);
+    color:var(--ink);
+    border-color:var(--paper);
+    font-weight:700;
+  }
+  .ledger-rows{
+    margin-top:16px;
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+    position:relative;
+  }
+  .ledger-row{
+    background:rgba(255,255,255,0.06);
+    border-radius:12px;
+    padding:10px 8px;
+    text-align:center;
+  }
+  .ledger-row .dot{
+    width:7px;height:7px;border-radius:50%;
+    display:inline-block;margin-left:5px;
+  }
+  .dot-income{background:#6FBFA2;}
+  .dot-expense{background:#E08977;}
+  .dot-advance{background:var(--gold);}
+  .ledger-row .lbl{font-size:11px; color:#C7CFC9; font-weight:500;}
+  .ledger-row .val{
+    font-family:'Cairo',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    margin-top:3px;
+    direction:ltr;
+    display:block;
+  }
+  .val-income{color:#8FD4B8;}
+  .val-expense{color:#E8A89A;}
+  .val-advance{color:#E3C57B;}
+
+  /* ===== Quick add ===== */
+  .quick-add{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+    margin-top:16px;
+  }
+  .qa-btn{
+    border:none;
+    border-radius:14px;
+    padding:14px 8px;
+    font-family:'Tajawal',sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    transition:.15s transform;
+    box-shadow:var(--shadow);
+  }
+  .qa-btn:active{transform:scale(0.97);}
+  .qa-btn svg{width:18px;height:18px;}
+  .qa-expense{background:var(--clay-soft); color:var(--clay);}
+  .qa-income{background:var(--teal-soft); color:var(--teal);}
+  .qa-advance{background:var(--gold-soft); color:#9c7c2f;}
+
+  /* ===== Section ===== */
+  .section{margin-top:28px;}
+  .section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    padding:0 2px;
+  }
+  .section-title{
+    font-family:'Cairo',sans-serif;
+    font-weight:700;
+    font-size:15.5px;
+  }
+  .section-action{
+    font-size:12.5px;
+    color:var(--teal);
+    font-weight:600;
+    cursor:pointer;
+    background:none;
+    border:none;
+    font-family:'Tajawal',sans-serif;
+  }
+  .filter-chips{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:4px;
+    margin-bottom:12px;
+  }
+  .chip{
+    flex-shrink:0;
+    padding:6px 14px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-size:12.5px;
+    font-weight:500;
+    color:var(--ink-soft);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .chip.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+
+  /* ===== Entry list ===== */
+  .entry-list{display:flex; flex-direction:column; gap:8px;}
+  .entry{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 14px;
+  }
+  .entry-icon{
+    width:38px;height:38px;
+    border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    font-size:17px;
+  }
+  .icon-expense{background:var(--clay-soft);}
+  .icon-income{background:var(--teal-soft);}
+  .icon-advance{background:var(--gold-soft);}
+  .entry-info{flex:1; min-width:0;}
+  .entry-name{font-weight:600; font-size:14px; color:var(--ink);}
+  .entry-meta{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .entry-amount{
+    font-family:'Cairo',sans-serif;
+    font-weight:700;
+    font-size:14.5px;
+    direction:ltr;
+    flex-shrink:0;
+  }
+  .amt-expense{color:var(--clay);}
+  .amt-income{color:var(--teal);}
+  .amt-advance{color:#9c7c2f;}
+  .entry-del{
+    background:none;border:none;color:#C9BFAF;
+    font-size:18px; cursor:pointer; padding:4px; flex-shrink:0;
+    line-height:1;
+  }
+  .entry-del:hover{color:var(--clay);}
+  .empty-state{
+    text-align:center;
+    padding:36px 20px;
+    color:var(--ink-soft);
+    font-size:13.5px;
+  }
+  .empty-state .e-icon{font-size:30px; margin-bottom:8px; display:block;}
+
+  /* ===== Reports ===== */
+  .report-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+  }
+  .report-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .report-stat{
+    background:var(--paper-2);
+    border-radius:12px;
+    padding:12px;
+  }
+  .report-stat .lbl{font-size:11.5px; color:var(--ink-soft); font-weight:500;}
+  .report-stat .val{
+    font-family:'Cairo',sans-serif;
+    font-weight:800;
+    font-size:18px;
+    margin-top:3px;
+    direction:ltr;
+    display:block;
+  }
+  .cat-bar-row{margin-bottom:10px;}
+  .cat-bar-top{display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px;}
+  .cat-bar-top .nm{font-weight:600;}
+  .cat-bar-top .amt{direction:ltr; color:var(--ink-soft); font-weight:600;}
+  .cat-bar-track{
+    height:7px; background:var(--paper-2); border-radius:99px; overflow:hidden;
+  }
+  .cat-bar-fill{height:100%; border-radius:99px; background:var(--clay);}
+
+  /* ===== Bottom Nav ===== */
+  .bottom-nav{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    max-width:560px;
+    margin:0 auto;
+    background:rgba(250,247,242,0.92);
+    backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);
+    display:flex;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    z-index:50;
+  }
+  .nav-btn{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-family:'Tajawal',sans-serif;
+    font-size:11px;
+    font-weight:600;
+    padding:6px 0;
+    cursor:pointer;
+  }
+  .nav-btn.active{color:var(--teal);}
+  .nav-btn svg{width:21px;height:21px;}
+
+  .view{display:none;}
+  .view.active{display:block; animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  /* ===== Modal ===== */
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(31,43,39,0.45);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:100;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal{
+    background:var(--paper);
+    width:100%;
+    max-width:560px;
+    border-radius:24px 24px 0 0;
+    padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    animation:slideUp .25s ease;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  @keyframes slideUp{from{transform:translateY(100%);} to{transform:translateY(0);}}
+  .modal-handle{
+    width:36px; height:4px; background:var(--line);
+    border-radius:99px; margin:0 auto 16px;
+  }
+  .modal-title{
+    font-family:'Cairo',sans-serif;
+    font-weight:800;
+    font-size:18px;
+    margin-bottom:16px;
+  }
+  .form-group{margin-bottom:14px;}
+  .form-label{
+    font-size:12.5px; font-weight:600; color:var(--ink-soft);
+    margin-bottom:6px; display:block;
+  }
+  .form-input, .form-select, .form-textarea{
+    width:100%;
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:12px 14px;
+    font-family:'Tajawal',sans-serif;
+    font-size:14.5px;
+    background:#fff;
+    color:var(--ink);
+    outline:none;
+    transition:.15s border-color;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus{
+    border-color:var(--teal);
+  }
+  .amount-input{
+    font-family:'Cairo',sans-serif;
+    font-weight:700;
+    font-size:24px;
+    text-align:center;
+    direction:ltr;
+    padding:14px;
+  }
+  .type-toggle{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .type-opt{
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:10px 4px;
+    text-align:center;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    background:#fff;
+    color:var(--ink-soft);
+  }
+  .type-opt.sel-expense.active{background:var(--clay-soft); border-color:var(--clay); color:var(--clay);}
+  .type-opt.sel-income.active{background:var(--teal-soft); border-color:var(--teal); color:var(--teal);}
+  .type-opt.sel-advance.active{background:var(--gold-soft); border-color:var(--gold); color:#9c7c2f;}
+  .cat-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+  }
+  .cat-opt{
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    padding:10px 4px;
+    text-align:center;
+    cursor:pointer;
+    background:#fff;
+    font-size:11px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+  .cat-opt .ic{font-size:18px; display:block; margin-bottom:3px;}
+  .cat-opt.active{border-color:var(--teal); background:var(--teal-soft); color:var(--teal);}
+  .modal-submit{
+    width:100%;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    border-radius:14px;
+    padding:15px;
+    font-family:'Tajawal',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  .fab{
+    position:fixed;
+    bottom:78px;
+    left:50%;
+    transform:translateX(-50%);
+    background:var(--teal);
+    color:#fff;
+    border:none;
+    width:56px;height:56px;
+    border-radius:50%;
+    font-size:26px;
+    box-shadow:0 8px 20px rgba(47,111,94,0.35);
+    cursor:pointer;
+    z-index:60;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .toast{
+    position:fixed;
+    top:18px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--paper);
+    padding:10px 18px; border-radius:99px;
+    font-size:13px; font-weight:600;
+    z-index:200; opacity:0; pointer-events:none;
+    transition:.25s;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(6px);}
+
+  @media (max-width:380px){
+    .ledger-balance{font-size:32px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="app-header">
+    <div>
+      <div class="app-title">دفتري</div>
+    </div>
+    <div class="app-date" id="todayDate"></div>
+  </div>
+
+  <!-- ===== HOME VIEW ===== -->
+  <div class="view active" id="view-home">
+    <div class="ledger">
+      <div class="ledger-label">الرصيد المتاح</div>
+      <div class="ledger-balance"><span class="cur">ر.س</span><span id="balanceVal">0</span></div>
+
+      <div class="ledger-period">
+        <button class="period-btn active" data-period="day">اليوم</button>
+        <button class="period-btn" data-period="week">الأسبوع</button>
+        <button class="period-btn" data-period="month">الشهر</button>
+        <button class="period-btn" data-period="all">الكل</button>
+      </div>
+
+      <div class="ledger-rows">
+        <div class="ledger-row">
+          <span class="lbl"><span class="dot dot-income"></span>الدخل</span>
+          <span class="val val-income" id="sumIncome">0</span>
+        </div>
+        <div class="ledger-row">
+          <span class="lbl"><span class="dot dot-expense"></span>المصروفات</span>
+          <span class="val val-expense" id="sumExpense">0</span>
+        </div>
+        <div class="ledger-row">
+          <span class="lbl"><span class="dot dot-advance"></span>السلف</span>
+          <span class="val val-advance" id="sumAdvance">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-add">
+      <button class="qa-btn qa-expense" onclick="openModal('expense')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        مصروف
+      </button>
+      <button class="qa-btn qa-income" onclick="openModal('income')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        دخل
+      </button>
+      <button class="qa-btn qa-advance" onclick="openModal('advance')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+        سلفة
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">آخر العمليات</div>
+        <button class="section-action" onclick="switchView('history')">عرض الكل</button>
+      </div>
+      <div class="entry-list" id="recentList"></div>
+    </div>
+  </div>
+
+  <!-- ===== HISTORY VIEW ===== -->
+  <div class="view" id="view-history">
+    <div class="section-head" style="margin-top:4px;">
+      <div class="section-title" style="font-size:18px;">كل العمليات</div>
+    </div>
+    <div class="filter-chips">
+      <button class="chip active" data-filter="all">الكل</button>
+      <button class="chip" data-filter="expense">مصروفات</button>
+      <button class="chip" data-filter="income">دخل</button>
+      <button class="chip" data-filter="advance">سلف</button>
+    </div>
+    <div class="entry-list" id="fullList"></div>
+  </div>
+
+  <!-- ===== REPORTS VIEW ===== -->
+  <div class="view" id="view-reports">
+    <div class="section-head" style="margin-top:4px;">
+      <div class="section-title" style="font-size:18px;">التقارير</div>
+    </div>
+    <div class="filter-chips">
+      <button class="chip active" data-rperiod="month">هذا الشهر</button>
+      <button class="chip" data-rperiod="week">هذا الأسبوع</button>
+      <button class="chip" data-rperiod="all">كل الفترة</button>
+    </div>
+
+    <div class="report-card" style="margin-bottom:14px;">
+      <div class="report-grid">
+        <div class="report-stat">
+          <div class="lbl">إجمالي الدخل</div>
+          <div class="val val-income" id="repIncome" style="color:var(--teal);">0</div>
+        </div>
+        <div class="report-stat">
+          <div class="lbl">إجمالي المصروفات</div>
+          <div class="val" id="repExpense" style="color:var(--clay);">0</div>
+        </div>
+        <div class="report-stat">
+          <div class="lbl">إجمالي السلف</div>
+          <div class="val" id="repAdvance" style="color:#9c7c2f;">0</div>
+        </div>
+        <div class="report-stat">
+          <div class="lbl">صافي التوفير</div>
+          <div class="val" id="repNet" style="color:var(--ink);">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div class="section-title">المصروفات حسب الفئة</div>
+    </div>
+    <div class="report-card" id="catBreakdown">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</div>
+
+<button class="fab" onclick="openModal('expense')">+</button>
+
+<div class="bottom-nav">
+  <button class="nav-btn active" data-view="home" onclick="switchView('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+    الرئيسية
+  </button>
+  <button class="nav-btn" data-view="history" onclick="switchView('history')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    العمليات
+  </button>
+  <button class="nav-btn" data-view="reports" onclick="switchView('reports')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9M11 19V4M18 19v-7"/></svg>
+    التقارير
+  </button>
+</div>
+
+<!-- ===== ADD ENTRY MODAL ===== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">إضافة مصروف</div>
+
+    <div class="type-toggle">
+      <div class="type-opt sel-expense" data-type="expense" onclick="setType('expense')">مصروف</div>
+      <div class="type-opt sel-income" data-type="income" onclick="setType('income')">دخل</div>
+      <div class="type-opt sel-advance" data-type="advance" onclick="setType('advance')">سلفة</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">المبلغ (ر.س)</label>
+      <input type="number" inputmode="decimal" class="form-input amount-input" id="inputAmount" placeholder="0">
+    </div>
+
+    <div class="form-group" id="categoryGroup">
+      <label class="form-label">الفئة</label>
+      <div class="cat-grid" id="catGrid"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">الوصف (اختياري)</label>
+      <input type="text" class="form-input" id="inputDesc" placeholder="مثال: غداء، فاتورة كهرباء...">
+    </div>
+
+    <div class="form-group" id="personGroup" style="display:none;">
+      <label class="form-label">من / إلى</label>
+      <input type="text" class="form-input" id="inputPerson" placeholder="اسم الشخص">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">التاريخ</label>
+      <input type="date" class="form-input" id="inputDate">
+    </div>
+
+    <button class="modal-submit" onclick="saveEntry()">حفظ العملية</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== Data =====
+let entries = [];
+let currentType = 'expense';
+let currentCategory = null;
+let currentFilter = 'all';
+let currentPeriod = 'day';
+let currentReportPeriod = 'month';
+
+const categories = {
+  expense: [
+    {id:'food', label:'طعام', icon:'🍽️'},
+    {id:'transport', label:'تنقل', icon:'🚗'},
+    {id:'shopping', label:'تسوق', icon:'🛍️'},
+    {id:'bills', label:'فواتير', icon:'🧾'},
+    {id:'health', label:'صحة', icon:'💊'},
+    {id:'home', label:'منزل', icon:'🏠'},
+    {id:'family', label:'عائلة', icon:'👨‍👩‍👧'},
+    {id:'other', label:'أخرى', icon:'•••'}
+  ],
+  income: [
+    {id:'salary', label:'راتب', icon:'💼'},
+    {id:'bonus', label:'مكافأة', icon:'🎁'},
+    {id:'freelance', label:'عمل حر', icon:'💻'},
+    {id:'gift', label:'هدية', icon:'🎀'},
+    {id:'refund', label:'استرجاع', icon:'↩️'},
+    {id:'other', label:'أخرى', icon:'•••'}
+  ],
+  advance: [
+    {id:'given', label:'سلفة معطاة', icon:'📤'},
+    {id:'taken', label:'سلفة مستلمة', icon:'📥'},
+    {id:'repay', label:'سداد سلفة', icon:'✅'},
+    {id:'other', label:'أخرى', icon:'•••'}
+  ]
+};
+
+const categoryLabels = {};
+Object.values(categories).flat().forEach(c=>{ categoryLabels[c.id]=c; });
+
+// ===== Storage =====
+function loadEntries(){
+  try{
+    const result = window.storage ? null : null;
+  }catch(e){}
+}
+
+async function loadData(){
+  try{
+    const res = await window.storage.get('entries');
+    entries = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){
+    entries = [];
+  }
+  renderAll();
+}
+
+async function persist(){
+  try{
+    await window.storage.set('entries', JSON.stringify(entries));
+  }catch(e){
+    console.error('فشل حفظ البيانات', e);
+    showToast('تعذر حفظ البيانات');
+  }
+}
+
+// ===== Helpers =====
+function fmt(n){
+  n = Number(n)||0;
+  return n.toLocaleString('en-US', {minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits:2});
+}
+function todayISO(){
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function setDateLabel(){
+  const d = new Date();
+  const opts = {weekday:'long', year:'numeric', month:'long', day:'numeric'};
+  document.getElementById('todayDate').textContent = d.toLocaleDateString('ar-SA', opts);
+}
+
+// ===== View switching =====
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
+  if(name==='reports') renderReports();
+  if(name==='history') renderFullList();
+}
+
+// ===== Modal =====
+function openModal(type){
+  currentType = type;
+  currentCategory = null;
+  document.getElementById('inputAmount').value = '';
+  document.getElementById('inputDesc').value = '';
+  document.getElementById('inputPerson').value = '';
+  document.getElementById('inputDate').value = todayISO();
+  setType(type);
+  document.getElementById('modalOverlay').classList.add('active');
+  setTimeout(()=>document.getElementById('inputAmount').focus(), 200);
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id==='modalOverlay') closeModal();
+});
+
+function setType(type){
+  currentType = type;
+  currentCategory = null;
+  document.querySelectorAll('.type-opt').forEach(el=>{
+    el.classList.toggle('active', el.dataset.type===type);
+  });
+  const titles = {expense:'إضافة مصروف', income:'إضافة دخل', advance:'إضافة سلفة'};
+  document.getElementById('modalTitle').textContent = titles[type];
+  document.getElementById('personGroup').style.display = type==='advance' ? 'block' : 'none';
+  renderCatGrid();
+}
+
+function renderCatGrid(){
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = '';
+  categories[currentType].forEach(cat=>{
+    const div = document.createElement('div');
+    div.className = 'cat-opt';
+    div.innerHTML = `<span class="ic">${cat.icon}</span>${cat.label}`;
+    div.onclick = ()=>{
+      currentCategory = cat.id;
+      document.querySelectorAll('.cat-opt').forEach(c=>c.classList.remove('active'));
+      div.classList.add('active');
+    };
+    grid.appendChild(div);
+  });
+}
+
+async function saveEntry(){
+  const amount = parseFloat(document.getElementById('inputAmount').value);
+  if(!amount || amount<=0){
+    showToast('أدخل مبلغاً صحيحاً');
+    return;
+  }
+  if(!currentCategory){
+    showToast('اختر الفئة');
+    return;
+  }
+  const entry = {
+    id: 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    type: currentType,
+    amount: amount,
+    category: currentCategory,
+    desc: document.getElementById('inputDesc').value.trim(),
+    person: document.getElementById('inputPerson').value.trim(),
+    date: document.getElementById('inputDate').value || todayISO(),
+    createdAt: Date.now()
+  };
+  entries.unshift(entry);
+  await persist();
+  closeModal();
+  renderAll();
+  const msgs = {expense:'تم تسجيل المصروف', income:'تم تسجيل الدخل', advance:'تم تسجيل السلفة'};
+  showToast(msgs[currentType]);
+}
+
+async function deleteEntry(id){
+  entries = entries.filter(e=>e.id!==id);
+  await persist();
+  renderAll();
+  showToast('تم الحذف');
+}
+
+// ===== Filtering by period =====
+function isInPeriod(entry, period){
+  const d = new Date(entry.date);
+  const now = new Date();
+  if(period==='all') return true;
+  if(period==='day'){
+    return entry.date === todayISO();
+  }
+  if(period==='week'){
+    const weekAgo = new Date();
+    weekAgo.setDate(now.getDate()-7);
+    return d >= weekAgo && d <= now;
+  }
+  if(period==='month'){
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  }
+  return true;
+}
+
+// ===== Rendering: Home =====
+function renderHome(){
+  const filtered = entries.filter(e=>isInPeriod(e, currentPeriod));
+  let income=0, expense=0, advance=0;
+  filtered.forEach(e=>{
+    if(e.type==='income') income += e.amount;
+    else if(e.type==='expense') expense += e.amount;
+    else if(e.type==='advance') advance += e.amount;
+  });
+  document.getElementById('sumIncome').textContent = fmt(income);
+  document.getElementById('sumExpense').textContent = fmt(expense);
+  document.getElementById('sumAdvance').textContent = fmt(advance);
+  const balance = income - expense;
+  document.getElementById('balanceVal').textContent = fmt(balance);
+
+  const recentList = document.getElementById('recentList');
+  const recent = entries.slice(0,6);
+  if(recent.length===0){
+    recentList.innerHTML = `<div class="empty-state"><span class="e-icon">📭</span>لا توجد عمليات بعد<br>اضغط على أحد الأزرار أعلاه للبدء</div>`;
+  } else {
+    recentList.innerHTML = recent.map(renderEntryHTML).join('');
+  }
+}
+
+function renderEntryHTML(e){
+  const cat = categoryLabels[e.category] || {label:'أخرى', icon:'•'};
+  const typeIcons = {expense:'icon-expense', income:'icon-income', advance:'icon-advance'};
+  const amtClass = {expense:'amt-expense', income:'amt-income', advance:'amt-advance'};
+  const sign = e.type==='income' ? '+' : (e.type==='expense' ? '−' : '');
+  const dateStr = new Date(e.date).toLocaleDateString('ar-SA', {day:'numeric', month:'short'});
+  const metaParts = [dateStr];
+  if(e.person) metaParts.push(e.person);
+  return `
+    <div class="entry">
+      <div class="entry-icon ${typeIcons[e.type]}">${cat.icon}</div>
+      <div class="entry-info">
+        <div class="entry-name">${e.desc || cat.label}</div>
+        <div class="entry-meta">${cat.label} · ${metaParts.join(' · ')}</div>
+      </div>
+      <div class="entry-amount ${amtClass[e.type]}">${sign}${fmt(e.amount)}</div>
+      <button class="entry-del" onclick="deleteEntry('${e.id}')">×</button>
+    </div>
+  `;
+}
+
+// ===== Rendering: History =====
+function renderFullList(){
+  const list = document.getElementById('fullList');
+  let filtered = entries;
+  if(currentFilter !== 'all'){
+    filtered = entries.filter(e=>e.type===currentFilter);
+  }
+  if(filtered.length===0){
+    list.innerHTML = `<div class="empty-state"><span class="e-icon">🔍</span>لا توجد عمليات مطابقة</div>`;
+  } else {
+    list.innerHTML = filtered.map(renderEntryHTML).join('');
+  }
+}
+
+// ===== Rendering: Reports =====
+function renderReports(){
+  const filtered = entries.filter(e=>isInPeriod(e, currentReportPeriod));
+  let income=0, expense=0, advance=0;
+  const catTotals = {};
+  filtered.forEach(e=>{
+    if(e.type==='income') income += e.amount;
+    else if(e.type==='expense'){
+      expense += e.amount;
+      catTotals[e.category] = (catTotals[e.category]||0) + e.amount;
+    }
+    else if(e.type==='advance') advance += e.amount;
+  });
+  document.getElementById('repIncome').textContent = fmt(income);
+  document.getElementById('repExpense').textContent = fmt(expense);
+  document.getElementById('repAdvance').textContent = fmt(advance);
+  document.getElementById('repNet').textContent = fmt(income-expense);
+
+  const breakdown = document.getElementById('catBreakdown');
+  const sorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+  if(sorted.length===0){
+    breakdown.innerHTML = `<div class="empty-state" style="padding:16px;"><span class="e-icon">📊</span>لا توجد مصروفات في هذه الفترة</div>`;
+  } else {
+    const max = sorted[0][1];
+    breakdown.innerHTML = sorted.map(([catId, total])=>{
+      const cat = categoryLabels[catId] || {label:catId};
+      const pct = Math.round((total/max)*100);
+      return `
+        <div class="cat-bar-row">
+          <div class="cat-bar-top">
+            <span class="nm">${cat.icon||''} ${cat.label}</span>
+            <span class="amt">${fmt(total)} ر.س</span>
+          </div>
+          <div class="cat-bar-track">
+            <div class="cat-bar-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function renderAll(){
+  renderHome();
+}
+
+// ===== Period buttons =====
+document.querySelectorAll('.period-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = btn.dataset.period;
+    renderHome();
+  });
+});
+
+document.querySelectorAll('.chip[data-filter]').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip[data-filter]').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    renderFullList();
+  });
+});
+
+document.querySelectorAll('.chip[data-rperiod]').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip[data-rperiod]').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    currentReportPeriod = chip.dataset.rperiod;
+    renderReports();
+  });
+});
+
+// ===== Init =====
+setDateLabel();
+renderCatGrid();
+loadData();
+</script>
+
+</body>
+</html>
